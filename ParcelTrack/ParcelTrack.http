@@ -1,0 +1,102 @@
+# ParcelTrack.http: requests the marker can replay from the top.
+# @host is the address in your browser when you press F5 (the http profile).
+@host = http://localhost:5420
+
+# Paste the token from request 3 into @staff_token and from request 9 into @admin_token
+# (or use # @name login variables if your client supports them).
+@staff_token =
+@admin_token =
+
+### 1. GET every parcel. Expect 200, with fees
+GET {{host}}/api/parcels
+
+### 2. POST with no token. Expect 401
+POST {{host}}/api/parcels
+Content-Type: application/json
+X-Client: Branch desk
+
+{
+  "trackingCode": "PT-200201",
+  "recipient": "Damion Clarke",
+  "weightKg": 4.2,
+  "status": "Received",
+  "branchId": 5
+}
+
+### 3. Login as staff. Expect 200 + token
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "staff@parceltrack.test",
+  "password": "Pass123!"
+}
+
+### 4. Login as staff, wrong password. Expect 401
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "staff@parceltrack.test",
+  "password": "WrongPassword!"
+}
+
+### 5. POST again with Staff token. Expect 201 + Location
+POST {{host}}/api/parcels
+Authorization: Bearer {{staff_token}}
+Content-Type: application/json
+X-Client: Branch desk
+
+{
+  "trackingCode": "PT-200201",
+  "recipient": "Damion Clarke",
+  "weightKg": 4.2,
+  "status": "Received",
+  "branchId": 5
+}
+
+### 6. POST with Staff token, bad tracking code. Expect 400, Part E message
+POST {{host}}/api/parcels
+Authorization: Bearer {{staff_token}}
+Content-Type: application/json
+X-Client: Branch desk
+
+{
+  "trackingCode": "AB-12",
+  "recipient": "Someone",
+  "weightKg": 1.0,
+  "status": "Received",
+  "branchId": 1
+}
+
+### 7. POST with Staff token, no X-Client. Expect 400, Part C message
+POST {{host}}/api/parcels
+Authorization: Bearer {{staff_token}}
+Content-Type: application/json
+
+{
+  "trackingCode": "PT-200202",
+  "recipient": "Nadine Walker",
+  "weightKg": 1.0,
+  "status": "Received",
+  "branchId": 1
+}
+
+### 8. DELETE with Staff token. Expect 403
+DELETE {{host}}/api/parcels/5
+Authorization: Bearer {{staff_token}}
+X-Client: Branch desk
+
+### 9. Login as admin. Expect 200 + token
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@parceltrack.test",
+  "password": "Pass123!"
+}
+
+### 10. DELETE with Admin token. Expect 204
+DELETE {{host}}/api/parcels/5
+Authorization: Bearer {{admin_token}}
+X-Client: Branch desk
